@@ -15,6 +15,18 @@ bool _isRunning;
 
 var commandArgs = ParseCommandLineArgs(args);
 
+var isHelp = commandArgs.TryGetValue("-help", out _) || commandArgs.TryGetValue("-h", out _) || commandArgs.TryGetValue("--help", out _);
+if (isHelp)
+{
+    logger.Log("Usage: UdpStressBench [-address <address>] [-port <port>] [-size <size>] [-rate <rate>]");
+    logger.Log("Options:");
+    logger.Log($"-address <address> : Destination Address (default: {defaultAddress})");
+    logger.Log($"-port <port> : Destination Port (default: {defaultPort})");
+    logger.Log($"-size <size> : Packet Size (default: {defaultPacketSize})");
+    logger.Log($"-rate <rate> : Packet Rate (default: {defaultRate})");
+    return;
+}
+
 var address = commandArgs.GetValueOrDefault("-address", defaultAddress);
 var port = commandArgs.TryGetValue("-port", out var portValue) ? int.Parse(portValue) : defaultPort;
 var size = commandArgs.TryGetValue("-size", out var inputSizeValue) ? int.Parse(inputSizeValue) : defaultPacketSize;
@@ -23,7 +35,7 @@ var rate = commandArgs.TryGetValue("-rate", out var rateValueValue) ? int.Parse(
 rate = Math.Max(rate, minRate);
 rate = Math.Min(rate, maxRate);
 
-logger.Log($"Start UdpStressBench PacketSize: {size}, Rate: {rate}");
+logger.Log($"Start UdpStressBench PacketSize: {size}B, Rate: {rate}msg/s");
 
 //parse address port 
 var destination = new IPEndPoint(IPAddress.Parse(address), port);
@@ -86,7 +98,8 @@ async void SendThread(Logger logger, UdpTransmitter udpTransmitter, int rate)
         //send packet
         await udpTransmitter.SendBytes(data);
         
-        logger.Log($"Send Packet Size: {size}");
+        var dataRate = size * 8 * rate;
+        logger.Log($"Send Packet Size: {size}Bytes ({dataRate / 1000f}Kbps)");
     }
     
     logger.Log($"End SendThread");
